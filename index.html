@@ -1,0 +1,597 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Princess Arcade — Offline Deluxe</title>
+<style>
+  :root{
+    --bg-pink: #ffdff6;
+    --bg-purple: #efe6ff;
+    --accent: #ff6aa6;
+    --muted:#6b2b50;
+    --card:#fff7ff;
+  }
+  html,body{height:100%;margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial; background:var(--bg-pink);}
+  .wrap{max-width:1150px;margin:18px auto;padding:18px;background:rgba(255,255,255,0.95);border-radius:14px;box-shadow:0 18px 40px rgba(0,0,0,0.08)}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  h1{margin:0;color:var(--muted);font-size:20px}
+  .top-right{display:flex;gap:10px;align-items:center}
+  .prin-bar{display:flex;gap:10px;overflow:auto;padding:10px;margin-top:12px;border-radius:12px;background:linear-gradient(90deg,#fff,#fff0)}
+  .prin{width:84px;flex:0 0 auto;border-radius:10px;padding:8px;background:var(--card);text-align:center;cursor:pointer;border:2px solid transparent;transition:transform .18s,box-shadow .18s}
+  .prin.selected{transform:translateY(-8px);border-color:var(--accent);box-shadow:0 10px 30px rgba(255,106,166,0.14)}
+  .avatar{width:64px;height:64px;border-radius:10px;display:inline-block;line-height:64px;font-size:30px;color:white;font-weight:700}
+  .small{font-size:13px;color:#4b3a4b}
+  .main{display:flex;gap:12px;margin-top:14px}
+  .left{flex:1}
+  .right{width:360px}
+  .game-card{background:linear-gradient(180deg,#fff,#fff0);border-radius:12px;padding:10px;box-shadow:0 8px 18px rgba(0,0,0,0.06)}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap}
+  .tab{padding:8px 10px;border-radius:8px;background:#fff;border:1px solid #eee;cursor:pointer}
+  .tab.active{background:linear-gradient(180deg,var(--accent),#ff3f8f);color:white;border:none}
+  canvas{width:100%;height:360px;background:transparent;border-radius:10px;display:block}
+  #blockCanvas{height:160px}
+  .instructions{margin-top:10px;padding:10px;border-radius:10px;background:#fff}
+  .hud{display:flex;gap:12px;align-items:center;margin-top:8px}
+  .btn{padding:8px 12px;border-radius:10px;border:none;background:var(--accent);color:white;cursor:pointer}
+  .btn.ghost{background:transparent;border:1px solid #eee;color:#333}
+  #shop{margin-top:12px;padding:12px;border-radius:10px;background:linear-gradient(180deg,#fff,#fff0)}
+  footer{margin-top:12px;color:#806070;font-size:13px}
+  /* Responsive */
+  @media (max-width:980px){ .main{flex-direction:column} .right{width:100%} canvas{height:300px} }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Princess Arcade — Deluxe (Offline)</h1>
+      <div class="top-right">
+        <div class="small">Coins: <strong id="coinsDisplay">0</strong></div>
+        <div class="small">Hearts: <strong id="heartsDisplay">0</strong></div>
+        <button id="buyHeartBtn" class="btn">Buy Heart (30)</button>
+      </div>
+    </header>
+
+    <div class="prin-bar" id="prinBar" aria-label="Princess picker">
+      <!-- Avatars generated offline (colored boxes with initials) -->
+      <!-- Data attributes configure princess name and color -->
+      <div class="prin" data-name="Ariel" data-color="#ff7fbf"><div class="avatar" style="background:#ff7fbf">AR</div><div class="small">Ariel</div></div>
+      <div class="prin" data-name="Belle" data-color="#ffb76b"><div class="avatar" style="background:#ffb76b;color:#4b2b00">BE</div><div class="small">Belle</div></div>
+      <div class="prin" data-name="Cinderella" data-color="#a1c4ff"><div class="avatar" style="background:#7fb3ff">CI</div><div class="small">Cinderella</div></div>
+      <div class="prin" data-name="Rapunzel" data-color="#f7d06a"><div class="avatar" style="background:#f7d06a;color:#4b2b00">RA</div><div class="small">Rapunzel</div></div>
+      <div class="prin" data-name="Mulan" data-color="#ffd6e9"><div class="avatar" style="background:#ffd6e9;color:#4b2b00">MU</div><div class="small">Mulan</div></div>
+      <div class="prin" data-name="Tiana" data-color="#9be9b6"><div class="avatar" style="background:#9be9b6;color:#07593f">TI</div><div class="small">Tiana</div></div>
+    </div>
+
+    <div style="margin-top:12px" class="game-card">
+      <div class="tabs" id="gameTabs">
+        <div class="tab active" data-game="flap">Princess Flap</div>
+        <div class="tab" data-game="block">Block Blast</div>
+        <div class="tab" data-game="runner">Princess Runner</div>
+        <div class="tab" data-game="puzzle">Puzzle Tiles</div>
+      </div>
+
+      <div class="main">
+        <div class="left">
+          <div class="game-card" style="padding:12px">
+            <!-- Canvas area switches behavior depending on game -->
+            <canvas id="mainCanvas" width="900" height="360"></canvas>
+            <!-- Block mini-canvas for Block Blast UI -->
+            <canvas id="blockCanvas" width="520" height="160" style="display:none;margin-top:8px;border-radius:8px;"></canvas>
+
+            <div class="hud">
+              <div class="small">Selected: <strong id="selectedPrincess">None</strong></div>
+              <div style="flex:1"></div>
+              <button id="startBtn" class="btn">Start</button>
+              <button id="resetBtn" class="btn ghost">Reset</button>
+            </div>
+
+            <div class="instructions" id="instructionsBox">
+              Choose a game tab and press Start. Each game has its own rules shown here.
+            </div>
+          </div>
+        </div>
+
+        <div class="right">
+          <div class="game-card">
+            <h3 style="margin:0">Shop & Progress</h3>
+            <div id="shop" style="margin-top:10px">
+              <div class="small">Use coins earned in any game to buy hearts (extra lives).</div>
+              <div style="height:8px"></div>
+              <button id="buyHeartBtn2" class="btn">Buy Heart (30)</button>
+              <div style="height:8px"></div>
+              <div class="small">Milestone backgrounds: 50 / 100 / 150 coins unlock fancy backgrounds.</div>
+            </div>
+
+            <div style="height:12px"></div>
+            <div class="game-card" style="margin-top:8px">
+              <h4 style="margin:8px 0 6px 0">How coins are earned</h4>
+              <ul style="text-align:left;margin:6px 0 0 18px;padding:0;font-size:13px;color:#5b465b">
+                <li>Flap: pass obstacles → +1 coin each.</li>
+                <li>Block Blast: clear blocks → +2 coins per block line.</li>
+                <li>Runner: survive distance & collect coins on track.</li>
+                <li>Puzzle: complete puzzle → +10 coins.</li>
+              </ul>
+            </div>
+
+            <div style="height:12px"></div>
+            <div class="small">Tip: If you reach ≥15 coins and then fail later, you'll keep 5 coins (as requested).</div>
+          </div>
+        </div>
+      </div>
+
+      <footer>Made for <strong>princess arcade</strong> — copy this file into your repo as <code>index.html</code>.</footer>
+    </div>
+  </div>
+
+<script>
+/* Princess Arcade — single-file offline playable
+   Games implemented:
+    - flap: tap to flap, dodge obstacles
+    - block: brick-breaker style block blast
+    - runner: side-scrolling runner with jumps
+    - puzzle: 3x3 sliding tile puzzle (princess portrait simulated)
+   Shared systems:
+    - coins (persisted)
+    - hearts (persisted), buy at 30 coins
+    - milestone backgrounds at 50/100/150
+    - if player's coins >= 15 and they fail later, they keep 5 coins
+*/
+
+///// GLOBAL STATE /////
+let coins = Number(localStorage.getItem('pa_coins') || 0);
+let hearts = Number(localStorage.getItem('pa_hearts') || 0);
+let selectedPrincess = null;
+let currentGame = 'flap'; // default
+const coinsDisplay = document.getElementById('coinsDisplay');
+const heartsDisplay = document.getElementById('heartsDisplay');
+const selectedPrincessEl = document.getElementById('selectedPrincess');
+const instructionsBox = document.getElementById('instructionsBox');
+
+function saveProgress(){ localStorage.setItem('pa_coins', String(coins)); localStorage.setItem('pa_hearts', String(hearts)); updateHUD(); }
+function updateHUD(){ coinsDisplay.textContent = coins; heartsDisplay.textContent = hearts; }
+updateHUD();
+
+///// PRINCESS PICKER (offline avatars) /////
+const prins = document.querySelectorAll('.prin');
+prins.forEach(p => {
+  p.addEventListener('click', ()=> {
+    prins.forEach(x=>x.classList.remove('selected'));
+    p.classList.add('selected');
+    selectedPrincess = {name:p.dataset.name, color:p.dataset.color};
+    selectedPrincessEl.textContent = selectedPrincess.name;
+  });
+});
+
+///// GAME TAB SWITCHING /////
+const tabs = document.querySelectorAll('.tab');
+tabs.forEach(t => {
+  t.addEventListener('click', ()=> {
+    tabs.forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    currentGame = t.dataset.game;
+    changeInstructions();
+    prepareForGame(); // show/hide elements, reset canvas views
+  });
+});
+
+function changeInstructions(){
+  if(currentGame==='flap'){
+    instructionsBox.innerHTML = "<strong>Princess Flap</strong> — Tap / Click the canvas to make the princess flap up. Avoid obstacles; pass obstacles to earn coins. If you hit an obstacle and have no hearts, you'll reset and coins change by rule.";
+  } else if(currentGame==='block'){
+    instructionsBox.innerHTML = "<strong>Block Blast</strong> — Use the paddle to bounce the ball and break blocks. Clear a row for extra coins. Click and drag the blue paddle on the lower block canvas to move it. Press Launch to start.";
+  } else if(currentGame==='runner'){
+    instructionsBox.innerHTML = "<strong>Princess Runner</strong> — Press SPACE or click to jump. Run as far as you can, collecting coins on the track. Hitting an obstacle costs a heart.";
+  } else if(currentGame==='puzzle'){
+    instructionsBox.innerHTML = "<strong>Puzzle Tiles</strong> — Slide tiles to reassemble the princess portrait (simulated). Complete the 3x3 puzzle to earn a big coin reward.";
+  }
+}
+changeInstructions();
+
+///// BUY HEART BUTTONS /////
+const buyHeartBtn = document.getElementById('buyHeartBtn');
+const buyHeartBtn2 = document.getElementById('buyHeartBtn2');
+[buyHeartBtn, buyHeartBtn2].forEach(btn => btn.addEventListener('click', ()=>{
+  if(coins >= 30){ coins -= 30; hearts++; saveProgress(); alert('You bought a heart!'); } else alert('Not enough coins (30 needed).');
+}));
+
+///// MAIN CANVAS SETUP /////
+const mainCanvas = document.getElementById('mainCanvas');
+const ctx = mainCanvas.getContext('2d');
+const blockCanvas = document.getElementById('blockCanvas');
+const bctx = blockCanvas.getContext('2d');
+const startBtn = document.getElementById('startBtn');
+const resetBtn = document.getElementById('resetBtn');
+
+function prepareForGame(){
+  // show/hide blockCanvas depending on game
+  blockCanvas.style.display = currentGame==='block' ? 'block' : 'none';
+  // reset the main canvas view
+  clearMainCanvas();
+}
+function clearMainCanvas(){
+  ctx.clearRect(0,0,mainCanvas.width, mainCanvas.height);
+  ctx.fillStyle = '#fff7ff';
+  ctx.fillRect(0,0,mainCanvas.width, mainCanvas.height);
+  ctx.fillStyle = '#6b2b50'; ctx.font = '18px sans-serif'; ctx.textAlign='center';
+  ctx.fillText('Select a game and press Start', mainCanvas.width/2, mainCanvas.height/2);
+}
+clearMainCanvas();
+
+///// MILESTONE BACKGROUNDS /////
+function applyMilestoneBg(){
+  const body = document.documentElement;
+  if(coins >= 150) document.body.style.background = 'linear-gradient(180deg,#ffdff6,#ffe5fb)';
+  else if(coins >= 100) document.body.style.background = 'linear-gradient(90deg,#ff9a9e,#a1c4fd)';
+  else if(coins >= 50) document.body.style.background = 'linear-gradient(180deg,#efe6ff,#fff)';
+  else document.body.style.background = 'var(--bg-pink)';
+}
+applyMilestoneBg();
+
+///// SHARED HELPERS /////
+function onFailKeepCoinsRule(){
+  if(coins >= 15) coins = 5;
+  else coins = 0;
+  saveProgress();
+}
+function giveCoins(n){
+  coins += n;
+  saveProgress();
+  applyMilestoneBg();
+}
+
+///// GAME: FLAP (similar to earlier) ///// 
+let flapState = {running:false, princess:{x:140,y:180,vy:0}, gravity:0.9, flapPower:-12, obstacles:[], frames:0, score:0};
+function flapReset(){
+  flapState.princess.y = mainCanvas.height/2; flapState.princess.vy = 0; flapState.obstacles = []; flapState.frames=0; flapState.score=0;
+  flapDraw(); 
+}
+function flapSpawn(){
+  const h = 40 + Math.random()*120;
+  const y = Math.random()*(mainCanvas.height-120)+60;
+  flapState.obstacles.push({x:mainCanvas.width+40,y:y,w:50,h:h,speed:3+Math.random()*2});
+}
+function flapUpdate(){
+  flapState.frames++;
+  if(flapState.frames % Math.max(60, 100 - Math.floor(flapState.score/8)) === 0) flapSpawn();
+  // physics
+  flapState.princess.vy += flapState.gravity * 0.6;
+  flapState.princess.y += flapState.princess.vy;
+  if(flapState.princess.y > mainCanvas.height - 60){ flapState.princess.y = mainCanvas.height - 60; flapState.princess.vy = 0; }
+  if(flapState.princess.y < 20){ flapState.princess.y = 20; flapState.princess.vy = 0; }
+  // obstacles
+  for(let i=flapState.obstacles.length-1;i>=0;i--){
+    const ob = flapState.obstacles[i];
+    ob.x -= ob.speed + Math.min(4, flapState.score/50);
+    if(ob.x + ob.w < -10){ flapState.obstacles.splice(i,1); flapState.score++; giveCoins(1); }
+  }
+  // collisions
+  for(const ob of flapState.obstacles){
+    if(flapState.princess.x + 28 > ob.x && flapState.princess.x < ob.x + ob.w &&
+       flapState.princess.y + 28 > ob.y && flapState.princess.y < ob.y + ob.h){
+      // hit
+      if(hearts > 0){ hearts--; saveProgress(); alert('You used a heart and survived!'); flapState.obstacles = []; return; }
+      onFailKeepCoinsRule();
+      flapState.running = false;
+      alert('You hit an obstacle! Back to start — press Start to try again.');
+      return;
+    }
+  }
+}
+function flapDraw(){
+  // background
+  ctx.clearRect(0,0,mainCanvas.width, mainCanvas.height);
+  // simple gradient
+  const g = ctx.createLinearGradient(0,0,0,mainCanvas.height);
+  g.addColorStop(0,'#ffdff6'); g.addColorStop(1,'#fff7ff');
+  ctx.fillStyle = g; ctx.fillRect(0,0,mainCanvas.width,mainCanvas.height);
+  // ground
+  ctx.fillStyle = 'rgba(255,255,255,0.88)'; ctx.fillRect(0, mainCanvas.height-56, mainCanvas.width, 56);
+  // princess (circle with initial)
+  ctx.save();
+  ctx.beginPath(); ctx.fillStyle = selectedPrincess ? selectedPrincess.color : '#d0a0ff';
+  ctx.arc(flapState.princess.x, flapState.princess.y, 28, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.font = '18px sans-serif'; ctx.textAlign='center'; ctx.fillText(selectedPrincess ? selectedPrincess.name.slice(0,2).toUpperCase() : 'PR', flapState.princess.x, flapState.princess.y+6);
+  ctx.restore();
+  // obstacles
+  ctx.fillStyle = '#7a1b5a';
+  flapState.obstacles.forEach(ob => ctx.fillRect(ob.x,ob.y,ob.w,ob.h));
+  // HUD
+  ctx.fillStyle='#6b2b50'; ctx.font='14px sans-serif'; ctx.textAlign='left';
+  ctx.fillText(`Score: ${flapState.score}`, 12, 20);
+}
+function flapLoop(){
+  if(!flapState.running) return;
+  flapUpdate();
+  flapDraw();
+  requestAnimationFrame(flapLoop);
+}
+mainCanvas.addEventListener('pointerdown', e=>{
+  if(currentGame === 'flap' && flapState.running){ flapState.princess.vy = flapState.flapPower || flapState.flapPower; flapState.princess.vy = -12; }
+});
+
+///// GAME: BLOCK BLAST ///// (simple brick-breaker)
+let blockState = {
+  running:false,
+  ball:{x:260,y:280,vx:4,vy:-4,r:8},
+  paddle:{x:220,w:120,h:12},
+  blocks:[],
+  score:0
+};
+function blockInit(){
+  blockState.blocks = [];
+  const cols = 7, rows = 4;
+  const margin = 10, bw = 60, bh = 22;
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      blockState.blocks.push({x: margin + c*(bw+6), y: 10 + r*(bh+6), w: bw, h: bh, hp: 1 + Math.floor(Math.random()*2)});
+    }
+  }
+  blockState.ball.x = 260; blockState.ball.y = 280; blockState.ball.vx = 4; blockState.ball.vy = -4;
+  drawBlockScene();
+}
+function drawBlockScene(){
+  // main canvas for background and big princess visual
+  ctx.clearRect(0,0,mainCanvas.width, mainCanvas.height);
+  ctx.fillStyle = '#fff7ff'; ctx.fillRect(0,0,mainCanvas.width, mainCanvas.height);
+  // small preview of princess
+  ctx.fillStyle = selectedPrincess ? selectedPrincess.color : '#a8a0ff';
+  ctx.fillRect(18,18,160,160);
+  ctx.fillStyle = '#fff'; ctx.font='20px sans-serif'; ctx.fillText(selectedPrincess ? selectedPrincess.name : 'PRIN', 98, 98);
+  // draw small block canvas below inside its own element
+  // draw block canvas
+  bctx.clearRect(0,0,blockCanvas.width, blockCanvas.height);
+  bctx.fillStyle = '#f2f0ff'; bctx.fillRect(0,0,blockCanvas.width, blockCanvas.height);
+  // blocks
+  blockState.blocks.forEach(b => {
+    bctx.fillStyle = '#7a1b5a';
+    bctx.fillRect(b.x, b.y, b.w, b.h);
+    bctx.fillStyle = '#fff'; bctx.font='12px sans-serif'; bctx.fillText(b.hp, b.x + b.w/2 - 4, b.y + b.h/2 + 4);
+  });
+  // paddle
+  bctx.fillStyle = '#005f7a'; bctx.fillRect(blockState.paddle.x, blockCanvas.height - 28, blockState.paddle.w, blockState.paddle.h);
+  // ball
+  bctx.beginPath(); bctx.fillStyle = '#ff7fbf'; bctx.arc(blockState.ball.x, blockState.ball.y, blockState.ball.r, 0, Math.PI*2); bctx.fill();
+}
+function blockUpdate(){
+  if(!blockState.running) return;
+  // move ball
+  blockState.ball.x += blockState.ball.vx; blockState.ball.y += blockState.ball.vy;
+  // collisions with walls
+  if(blockState.ball.x < blockState.ball.r || blockState.ball.x > blockCanvas.width - blockState.ball.r) blockState.ball.vx *= -1;
+  if(blockState.ball.y < blockState.ball.r) blockState.ball.vy *= -1;
+  // collision with paddle
+  const paddleY = blockCanvas.height - 28;
+  if(blockState.ball.y + blockState.ball.r >= paddleY &&
+     blockState.ball.x >= blockState.paddle.x &&
+     blockState.ball.x <= blockState.paddle.x + blockState.paddle.w){
+     blockState.ball.vy *= -1;
+     // small velocity tweak based on where it hit
+     const hitPos = (blockState.ball.x - blockState.paddle.x) / blockState.paddle.w - 0.5;
+     blockState.ball.vx += hitPos * 2;
+  }
+  // blocks collision
+  for(let i = blockState.blocks.length -1; i>=0; i--){
+    const b = blockState.blocks[i];
+    if(blockState.ball.x > b.x && blockState.ball.x < b.x + b.w &&
+       blockState.ball.y - blockState.ball.r < b.y + b.h && blockState.ball.y + blockState.ball.r > b.y){
+      blockState.ball.vy *= -1;
+      b.hp--;
+      if(b.hp <= 0){
+        // remove block, award coins
+        blockState.blocks.splice(i,1);
+        giveCoins(2);
+      }
+      break;
+    }
+  }
+  // ball fall below paddle
+  if(blockState.ball.y > blockCanvas.height + 30){
+    if(hearts > 0){ hearts--; saveProgress(); alert('You lost a ball but used a heart!'); blockInit(); return; }
+    onFailKeepCoinsRule();
+    blockState.running = false;
+    alert('Ball lost! Press Start to try again.');
+  }
+  drawBlockScene();
+  if(blockState.running) requestAnimationFrame(blockUpdate);
+}
+blockCanvas.addEventListener('pointermove', (e)=> {
+  const rect = blockCanvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) * (blockCanvas.width / rect.width);
+  blockState.paddle.x = Math.max(0, Math.min(blockCanvas.width - blockState.paddle.w, x - blockState.paddle.w/2));
+  drawBlockScene();
+});
+
+///// GAME: RUNNER ///// side scroller runner
+let runnerState = {running:false, player:{x:80,y:260,vy:0,jump:-12}, gravity:0.8, obstacles:[], frames:0, score:0, coinsOnTrack:[]};
+function runnerSpawnObstacle(){
+  const y = mainCanvas.height - 86;
+  runnerState.obstacles.push({x: mainCanvas.width + 40, y: y, w: 34, h: 34, speed: 4 + Math.random()*2});
+}
+function runnerSpawnCoin(){
+  runnerState.coinsOnTrack.push({x: mainCanvas.width + 80, y: mainCanvas.height - 120, r:8});
+}
+function runnerUpdate(){
+  runnerState.frames++;
+  if(runnerState.frames % 90 === 0) runnerSpawnObstacle();
+  if(runnerState.frames % 140 === 0) runnerSpawnCoin();
+  // physics
+  runnerState.player.vy += runnerState.gravity;
+  runnerState.player.y += runnerState.player.vy;
+  if(runnerState.player.y > mainCanvas.height - 86){ runnerState.player.y = mainCanvas.height - 86; runnerState.player.vy = 0; }
+  // obstacles move
+  for(let i = runnerState.obstacles.length-1; i>=0; i--){
+    runnerState.obstacles[i].x -= runnerState.obstacles[i].speed;
+    if(runnerState.obstacles[i].x + runnerState.obstacles[i].w < -10) {
+      runnerState.obstacles.splice(i,1); runnerState.score++; giveCoins(1);
+    }
+  }
+  // coins move
+  for(let i = runnerState.coinsOnTrack.length-1; i>=0; i--){
+    runnerState.coinsOnTrack[i].x -= 3;
+    const c = runnerState.coinsOnTrack[i];
+    // collect?
+    const dx = c.x - (runnerState.player.x + 14);
+    const dy = c.y - (runnerState.player.y + 14);
+    if(Math.hypot(dx,dy) < 22){ runnerState.coinsOnTrack.splice(i,1); giveCoins(1); }
+    if(c.x < -20) runnerState.coinsOnTrack.splice(i,1);
+  }
+  // collision with obstacle
+  for(const ob of runnerState.obstacles){
+    if(runnerState.player.x + 32 > ob.x && runnerState.player.x < ob.x + ob.w &&
+       runnerState.player.y + 32 > ob.y && runnerState.player.y < ob.y + ob.h){
+      if(hearts > 0){ hearts--; saveProgress(); runnerState.obstacles = []; return; }
+      onFailKeepCoinsRule();
+      runnerState.running = false;
+      alert('You hit an obstacle! Try again.');
+      return;
+    }
+  }
+}
+function runnerDraw(){
+  ctx.clearRect(0,0,mainCanvas.width,mainCanvas.height);
+  // bg
+  const g = ctx.createLinearGradient(0,0,0,mainCanvas.height);
+  g.addColorStop(0,'#fff7ff'); g.addColorStop(1,'#fff');
+  ctx.fillStyle = g; ctx.fillRect(0,0,mainCanvas.width,mainCanvas.height);
+  // ground
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, mainCanvas.height-86, mainCanvas.width, 86);
+  // player
+  ctx.fillStyle = selectedPrincess ? selectedPrincess.color : '#b3a0ff';
+  ctx.beginPath(); ctx.arc(runnerState.player.x, runnerState.player.y, 18, 0, Math.PI*2); ctx.fill();
+  // obstacles
+  ctx.fillStyle = '#7a1b5a'; runnerState.obstacles.forEach(ob => ctx.fillRect(ob.x, ob.y, ob.w, ob.h));
+  // coins on track
+  ctx.fillStyle = '#ffd34d'; runnerState.coinsOnTrack.forEach(c => { ctx.beginPath(); ctx.arc(c.x,c.y,c.r,0,Math.PI*2); ctx.fill(); });
+  // HUD
+  ctx.fillStyle='#6b2b50'; ctx.font='14px sans-serif'; ctx.fillText(`Distance: ${runnerState.score}`,12,22);
+}
+function runnerLoop(){
+  if(!runnerState.running) return;
+  runnerUpdate();
+  runnerDraw();
+  requestAnimationFrame(runnerLoop);
+}
+window.addEventListener('keydown', e => {
+  if(e.code === 'Space' && currentGame === 'runner' && runnerState.running){
+    if(runnerState.player.y >= mainCanvas.height - 86) runnerState.player.vy = runnerState.player.jump;
+  }
+});
+mainCanvas.addEventListener('pointerdown', e => {
+  if(currentGame === 'runner' && runnerState.running){
+    if(runnerState.player.y >= mainCanvas.height - 86) runnerState.player.vy = runnerState.player.jump;
+  }
+});
+
+///// GAME: PUZZLE (3x3 sliding) /////
+let puzzleState = {grid:[], empty:{x:2,y:2}, running:false};
+function puzzleInit(){
+  // fill with numbers 1..8 and one empty
+  let arr = [1,2,3,4,5,6,7,8,null];
+  // shuffle a few times ensuring solvable-ish
+  for(let i=0;i<200;i++){ const a = Math.floor(Math.random()*9); const b = Math.floor(Math.random()*9); [arr[a],arr[b]]=[arr[b],arr[a]]; }
+  puzzleState.grid = [];
+  for(let r=0;r<3;r++){
+    puzzleState.grid[r] = [];
+    for(let c=0;c<3;c++){
+      const v = arr[r*3+c];
+      puzzleState.grid[r][c] = v;
+      if(v === null) puzzleState.empty = {x:c,y:r};
+    }
+  }
+  puzzleDraw();
+}
+function puzzleDraw(){
+  ctx.clearRect(0,0,mainCanvas.width,mainCanvas.height);
+  ctx.fillStyle = '#fff7ff'; ctx.fillRect(0,0,mainCanvas.width,mainCanvas.height);
+  // draw 3x3 tiles centered
+  const size = 120; const gap=10;
+  const startX = (mainCanvas.width - (3*size + 2*gap)) / 2;
+  const startY = 40;
+  ctx.font = '28px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  for(let r=0;r<3;r++){
+    for(let c=0;c<3;c++){
+      const v = puzzleState.grid[r][c];
+      const x = startX + c*(size+gap); const y = startY + r*(size+gap);
+      if(v !== null){
+        ctx.fillStyle = '#7a1b5a'; ctx.fillRect(x,y,size,size);
+        ctx.fillStyle = '#fff'; ctx.fillText(v, x+size/2, y+size/2);
+      } else {
+        ctx.fillStyle = '#fff'; ctx.fillRect(x,y,size,size);
+      }
+    }
+  }
+  ctx.fillStyle='#6b2b50'; ctx.font='16px sans-serif'; ctx.fillText('Arrange tiles to 1..8', mainCanvas.width/2, startY + 3*(size+gap) + 20);
+}
+mainCanvas.addEventListener('pointerdown', function puzzleClick(e){
+  if(currentGame !== 'puzzle') return;
+  const rect = mainCanvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) * (mainCanvas.width / rect.width);
+  const my = (e.clientY - rect.top) * (mainCanvas.height / rect.height);
+  // map to tile
+  const size = 120; const gap=10;
+  const startX = (mainCanvas.width - (3*size + 2*gap)) / 2;
+  const startY = 40;
+  for(let r=0;r<3;r++){
+    for(let c=0;c<3;c++){
+      const x = startX + c*(size+gap); const y = startY + r*(size+gap);
+      if(mx >= x && mx <= x+size && my >= y && my <= y+size){
+        // if adjacent to empty, swap
+        const dx = Math.abs(c - puzzleState.empty.x);
+        const dy = Math.abs(r - puzzleState.empty.y);
+        if((dx === 1 && dy === 0) || (dx===0 && dy===1)){
+          puzzleState.grid[puzzleState.empty.y][puzzleState.empty.x] = puzzleState.grid[r][c];
+          puzzleState.grid[r][c] = null;
+          puzzleState.empty = {x:c,y:r};
+          puzzleDraw();
+          // check win
+          if(checkPuzzleWin()){ giveCoins(10); alert('Puzzle complete! You got 10 coins.'); }
+        }
+      }
+    }
+  }
+});
+function checkPuzzleWin(){
+  const flat = [];
+  for(let r=0;r<3;r++) for(let c=0;c<3;c++) flat.push(puzzleState.grid[r][c]);
+  for(let i=0;i<8;i++) if(flat[i] !== i+1) return false;
+  return true;
+}
+
+///// START / RESET BUTTONS /////
+startBtn.addEventListener('click', ()=>{
+  if(!selectedPrincess){ alert('Pick a princess first (click an avatar).'); return; }
+
+  // route to start appropriate game
+  if(currentGame === 'flap'){
+    flapState.running = true; flapReset(); flapLoop();
+  } else if(currentGame === 'block'){
+    blockState.running = true; blockInit(); blockUpdate();
+  } else if(currentGame === 'runner'){
+    runnerState.running = true; runnerState.player.y = mainCanvas.height - 86; runnerState.player.vy = 0; runnerState.obstacles = []; runnerState.coinsOnTrack=[]; runnerState.frames=0; runnerState.score=0; runnerLoop();
+  } else if(currentGame === 'puzzle'){
+    puzzleInit(); // puzzle is interactive without "running"
+  }
+});
+
+resetBtn.addEventListener('click', ()=>{
+  // reset game-specific things but keep coins/hearts
+  if(currentGame === 'flap'){ flapState.running=false; flapReset(); }
+  if(currentGame === 'block'){ blockState.running=false; blockInit(); }
+  if(currentGame === 'runner'){ runnerState.running=false; runnerState.obstacles=[]; runnerState.coinsOnTrack=[]; runnerState.frames=0; runnerDraw(); }
+  if(currentGame === 'puzzle'){ puzzleInit(); }
+});
+
+///// INITIAL PREP ///// 
+prepareForGame();
+puzzleInit();
+blockInit();
+flapReset();
+runnerDraw();
+
+///// Save on page unload /////
+window.addEventListener('beforeunload', ()=>saveProgress());
+
+</script>
+</body>
+</html>
