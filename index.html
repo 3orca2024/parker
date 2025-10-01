@@ -1,111 +1,307 @@
-<!-- Princess Flap Game -->
-<div id="flap" class="game-section" style="display:none;">
-  <canvas id="flapCanvas" width="400" height="500" style="background:linear-gradient(#d9c9ff,#fff0f6); border:2px solid purple; display:block; margin:auto;"></canvas>
-  <p style="text-align:center; color:purple; font-weight:bold;">Press SPACE to fly! Avoid the wands!</p>
-</div>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Princes Flap</title>
+  <style>
+    :root{
+      --pink:#ffd6ea;
+      --pastel-purple:#d6c3ff;
+      --accent:#ff79c6;
+      --soft:#fff7ff;
+      --ui:#ffffffcc;
+      font-family: 'Segoe UI', Roboto, system-ui, -apple-system, 'Helvetica Neue', Arial;
+    }
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--soft),var(--pink));display:flex;align-items:center;justify-content:center}
+    .wrap{width:100%;max-width:960px;margin:20px;padding:18px;border-radius:16px;background:var(--ui);box-shadow:0 8px 30px rgba(0,0,0,0.08)}
+    header{display:flex;align-items:center;gap:12px}
+    h1{margin:0;font-size:24px;color:#7a1b5a}
+    .top-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+
+    /* princess picker */
+    .picker{display:flex;gap:8px;align-items:center;overflow:auto;padding:8px;border-radius:12px;background:linear-gradient(90deg,#fff,#fff0);}
+    .pick-label{min-width:120px;color:#6b2b50;font-weight:700}
+    .princess{min-width:78px;min-height:78px;border-radius:12px;background:linear-gradient(180deg,#fff,#ffeaf6);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;border:2px solid transparent;transition:transform .18s ease,border-color .18s}
+    .princess.selected{transform:translateY(-8px);border-color:var(--accent);box-shadow:0 6px 18px rgba(255,121,198,0.18)}
+    .princess span{font-size:12px;color:#6b2b50}
+
+    /* game */
+    .game-area{position:relative;height:480px;background:linear-gradient(180deg,#ffdff6,#ffd6e9);border-radius:12px;overflow:hidden;margin-top:12px}
+    #gameCanvas{width:100%;height:100%;display:block}
+    .hud{position:absolute;left:12px;top:12px;background:#ffffffaa;padding:8px;border-radius:10px;backdrop-filter:blur(4px);display:flex;gap:10px;align-items:center}
+    .btn{background:var(--accent);padding:6px 10px;border-radius:8px;color:white;border:none;cursor:pointer}
+    .right-hud{position:absolute;right:12px;top:12px;background:#ffffffaa;padding:8px;border-radius:10px}
+    .center-overlay{position:absolute;left:0;right:0;top:0;bottom:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+    .panel{pointer-events:auto;background:rgba(255,255,255,0.95);padding:12px;border-radius:12px}
+
+    /* starting line */
+    .start-line{position:absolute;left:12%;bottom:84px;width:76px;height:6px;background:#fff;border-radius:6px;box-shadow:inset 0 -4px 0 rgba(0,0,0,0.06)}
+
+    footer{margin-top:12px;color:#6b2b50;font-size:13px}
+
+    /* little responsive */
+    @media (max-width:600px){.wrap{padding:12px}.princess{min-width:64px;min-height:64px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top-row">
+      <header>
+        <h1>Princes Flap — pick your princess and TAP to play!</h1>
+      </header>
+      <div>
+        <strong>Fun mode</strong>
+      </div>
+    </div>
+
+    <div class="picker">
+      <div class="pick-label">Pick your princess:</div>
+      <!-- We'll use simple emoji portraits for demo — replace with images on your repo -->
+      <div class="princess" data-name="Ariel"><div style="font-size:34px">🧜‍♀️</div><span>Ariel</span></div>
+      <div class="princess" data-name="Belle"><div style="font-size:34px">📚</div><span>Belle</span></div>
+      <div class="princess" data-name="Cinderella"><div style="font-size:34px">👗</div><span>Cindy</span></div>
+      <div class="princess" data-name="Rapunzel"><div style="font-size:34px">💇‍♀️</div><span>Rapunzel</span></div>
+      <div class="princess" data-name="Mulan"><div style="font-size:34px">🎎</div><span>Mulan</span></div>
+      <div class="princess" data-name="Tiana"><div style="font-size:34px">🍵</div><span>Tiana</span></div>
+    </div>
+
+    <div class="game-area" id="gameArea">
+      <canvas id="gameCanvas" width="900" height="480"></canvas>
+      <div class="start-line" id="startLine"></div>
+      <div class="hud">
+        <div id="coins">Coins: 0</div>
+        <div id="lives">Lives: 0</div>
+        <button class="btn" id="buyHeart">Buy heart (30)</button>
+      </div>
+      <div class="right-hud" id="scoreBox">Score: 0</div>
+      <div class="center-overlay" id="overlay">
+        <div class="panel" id="centerPanel">
+          <div id="message">Choose a princess to begin!</div>
+          <div style="height:8px"></div>
+          <button class="btn" id="startBtn">Start</button>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <small>Made for <strong>princes-flap</strong> — drop into a GitHub Pages repo as <code>index.html</code>.</small>
+    </footer>
+  </div>
 
 <script>
-const flapCanvas = document.getElementById("flapCanvas");
-const ctx = flapCanvas.getContext("2d");
+/* ------ Game implementation (single-file) ------
+   Controls & rules implemented from your request:
+   - Choose princess from the bar (emoji placeholders)
+   - Selected princess floats to start line
+   - Press Start -> 3..2..1 countdown
+   - Tap/click anywhere to "flap" up and avoid obstacles
+   - Obstacles spawn; you may also click obstacles to destroy them
+   - Hitting obstacle resets position and score; coin-save rules applied
+   - Coin thresholds change background scenes at 50,100,150
+   - When passing obstacles you earn coins; reaching 15 coins means on fail you keep 5 coins
+   - At 30 coins you can buy hearts (lives)
+*/
 
-let princess, gravity, lift, velocity, wands, score, gameOver;
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let W = canvas.width, H = canvas.height;
 
-function startFlap() {
-  princess = { x: 80, y: 200, radius: 20 };
-  gravity = 0.6;
-  lift = -10;
-  velocity = 0;
-  wands = [];
-  score = 0;
-  gameOver = false;
-  document.addEventListener("keydown", flapKey);
-  setInterval(addWand, 2000);
-  requestAnimationFrame(drawFlap);
+// Game state
+let princess = null;
+let princessPos = {x: W*0.15, y: H/2, vy:0};
+let gravity = 0.9, flapPower = -12;
+let obstacles = [];
+let frames = 0;
+let running=false;
+let coins = 0;
+let score = 0;
+let lives = 0;
+let spawnInterval = 100; // frames
+let bgStage = 0; // 0 pink,1 purple,2 rainbow,3 pink+stars
+
+const overlay = document.getElementById('overlay');
+const message = document.getElementById('message');
+const startBtn = document.getElementById('startBtn');
+const coinsEl = document.getElementById('coins');
+const scoreBox = document.getElementById('scoreBox');
+const livesEl = document.getElementById('lives');
+const buyHeartBtn = document.getElementById('buyHeart');
+
+// Princess selection
+const princessEls = document.querySelectorAll('.princess');
+princessEls.forEach(el=>{
+  el.addEventListener('click',()=>selectPrincess(el));
+});
+
+function selectPrincess(el){
+  princessEls.forEach(x=>x.classList.remove('selected'));
+  el.classList.add('selected');
+  princess = {name: el.dataset.name, icon: el.innerText.trim()};
+  // animate float: we'll simply show message and move CSS of startLine area visually
+  message.innerHTML = `<strong>${princess.name}</strong> selected! Click Start when you're ready.`;
 }
 
-function flapKey(e) {
-  if (e.code === "Space" && !gameOver) {
-    velocity += lift;
-  }
-}
-
-function addWand() {
-  if (gameOver) return;
-  let gap = 120;
-  let topHeight = Math.floor(Math.random() * 250) + 50;
-  wands.push({
-    x: flapCanvas.width,
-    top: topHeight,
-    bottom: topHeight + gap,
-    width: 40
+// Start sequence: princess floats to start line — visualized via overlay animation
+function startSequence(){
+  if(!princess){ alert('Pick a princess first — seriously, which one?'); return; }
+  overlay.style.pointerEvents='none';
+  message.innerHTML = 'Get ready...';
+  // animate princess float visually by duplicating an element on canvas during countdown
+  countdown(3, ()=>{
+    running=true; frames=0; obstacles=[]; score=0; princessPos.y = H/2; princessPos.vy=0; coins = coins; // coins persist
+    updateHUD();
+    loop();
   });
 }
 
-function drawFlap() {
-  ctx.clearRect(0, 0, flapCanvas.width, flapCanvas.height);
+startBtn.addEventListener('click',startSequence);
 
-  // Princess character
-  ctx.fillStyle = "pink";
-  ctx.beginPath();
-  ctx.arc(princess.x, princess.y, princess.radius, 0, Math.PI*2);
-  ctx.fill();
-  ctx.strokeStyle = "purple";
-  ctx.stroke();
+function countdown(n, cb){
+  let cur=n;
+  message.innerHTML = `<div style="font-size:44px;">${cur}</div>`;
+  const id = setInterval(()=>{
+    cur--;
+    if(cur>0) message.innerHTML = `<div style="font-size:44px;">${cur}</div>`;
+    else { clearInterval(id); overlay.style.pointerEvents='none'; overlay.style.display='none'; cb(); }
+  },700);
+}
 
-  // Physics
-  velocity += gravity;
-  princess.y += velocity;
-  if (princess.y + princess.radius > flapCanvas.height) {
-    princess.y = flapCanvas.height - princess.radius;
-    gameOver = true;
-  }
-  if (princess.y - princess.radius < 0) {
-    princess.y = princess.radius;
-  }
+// Buy heart
+buyHeartBtn.addEventListener('click',()=>{
+  if(coins>=30){ coins -= 30; lives++; updateHUD(); }
+  else alert('Not enough coins! Get to 30 coins to buy hearts.');
+});
 
-  // Wands (obstacles)
-  ctx.fillStyle = "purple";
-  for (let i = 0; i < wands.length; i++) {
-    let w = wands[i];
-    // Top wand
-    ctx.fillRect(w.x, 0, w.width, w.top);
-    // Bottom wand
-    ctx.fillRect(w.x, w.bottom, w.width, flapCanvas.height - w.bottom);
-
-    w.x -= 2;
-
-    // Collision
-    if (
-      princess.x + princess.radius > w.x &&
-      princess.x - princess.radius < w.x + w.width &&
-      (princess.y - princess.radius < w.top || princess.y + princess.radius > w.bottom)
-    ) {
-      gameOver = true;
-    }
-
-    // Scoring
-    if (w.x + w.width === princess.x) {
-      score++;
+// Input: flap or destroy obstacle
+canvas.addEventListener('pointerdown',(e)=>{
+  const rect = canvas.getBoundingClientRect();
+  const x = (e.clientX - rect.left) * (canvas.width/rect.width);
+  const y = (e.clientY - rect.top) * (canvas.height/rect.height);
+  // first, check if clicked an obstacle
+  for(let i=0;i<obstacles.length;i++){
+    const ob = obstacles[i];
+    if(x>=ob.x && x<=ob.x+ob.w && y>=ob.y && y<=ob.y+ob.h){
+      // destroy it
+      obstacles.splice(i,1);
+      score += 2; updateHUD();
+      return;
     }
   }
+  // otherwise flap
+  princessPos.vy = flapPower;
+});
 
-  // Draw score
-  ctx.fillStyle = "darkmagenta";
-  ctx.font = "20px Arial";
-  ctx.fillText("Score: " + score, 10, 25);
+// Resize handling
+window.addEventListener('resize',()=>{
+  // keep canvas internal size same but could adapt later
+});
 
-  if (!gameOver) {
-    requestAnimationFrame(drawFlap);
+function spawnObstacle(){
+  const h = 30 + Math.random()*90;
+  const y = Math.random()*(H-140)+60;
+  obstacles.push({x:W+40,y:y,w:40,h:h, speed:3 + Math.random()*2});
+}
+
+function updateHUD(){
+  coinsEl.textContent = `Coins: ${coins}`;
+  scoreBox.textContent = `Score: ${score}`;
+  livesEl.textContent = `Lives: ${lives}`;
+}
+
+function resetAfterHit(){
+  // If you have a life, consume one and continue
+  if(lives>0){ lives--; updateHUD(); return; }
+  // else full fail: apply coin-save rules
+  if(coins>=15){ coins = 5; } else { coins = 0; }
+  score = 0; updateHUD();
+  // reset princess position
+  princessPos.y = H/2; princessPos.vy = 0;
+  // stop and show overlay with start again
+  running=false;
+  overlay.style.display='flex'; overlay.style.pointerEvents='auto'; overlay.querySelector('#message').innerHTML = 'Oh no! You hit an obstacle. Pick Start to try again.';
+}
+
+// Background stages
+function drawBackground(){
+  if(bgStage===0){
+    // pink gradient
+    const g = ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#ffdff6'); g.addColorStop(1,'#ffd6e9'); ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+  } else if(bgStage===1){
+    const g = ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#f3e6ff'); g.addColorStop(1,'#d7c6ff'); ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+  } else if(bgStage===2){
+    // rainbow-ish
+    const g = ctx.createLinearGradient(0,0,W,0); g.addColorStop(0,'#ff9a9e'); g.addColorStop(0.2,'#fad0c4'); g.addColorStop(0.4,'#fbc2eb'); g.addColorStop(0.6,'#a1c4fd'); g.addColorStop(0.8,'#c2e9fb'); g.addColorStop(1,'#d4fc79'); ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
   } else {
-    ctx.fillStyle = "red";
-    ctx.font = "30px Arial";
-    ctx.fillText("Game Over!", 120, 250);
+    // pink + shooting stars
+    const g = ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,'#ffdff6'); g.addColorStop(1,'#ffcfe8'); ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
+    // stars
+    for(let i=0;i<30;i++){ ctx.fillStyle='rgba(255,255,255,0.6)'; ctx.fillRect((i*47+frames*2)%W,30+((i*23)%H),2,2); }
   }
 }
 
-// Hook this into your "Start" button for Flap
-function startFlapGame() {
-  startFlap();
+function loop(){
+  frames++;
+  // spawn obstacles periodically but speed up with score
+  if(frames%Math.max(60, spawnInterval - Math.floor(score/10))===0) spawnObstacle();
+
+  // physics
+  princessPos.vy += gravity*0.6; princessPos.y += princessPos.vy;
+  if(princessPos.y > H-60){ princessPos.y = H-60; princessPos.vy = 0; }
+  if(princessPos.y < 20){ princessPos.y = 20; princessPos.vy = 0; }
+
+  // update obstacles
+  for(let i=obstacles.length-1;i>=0;i--){
+    obstacles[i].x -= obstacles[i].speed + Math.min(4, score/50);
+    if(obstacles[i].x + obstacles[i].w < -10) { obstacles.splice(i,1); score += 1; coins += 1; checkMilestones(); updateHUD(); }
+  }
+
+  // collision detection
+  for(let ob of obstacles){
+    if(princessPos.x+36 > ob.x && princessPos.x < ob.x+ob.w && princessPos.y+36 > ob.y && princessPos.y < ob.y+ob.h){
+      // hit
+      resetAfterHit(); return; // stop drawing further this frame
+    }
+  }
+
+  // clear canvas
+  drawBackground();
+
+  // draw ground / starting line
+  ctx.fillStyle = 'rgba(255,255,255,0.6)'; ctx.fillRect(0,H-48,W,48);
+  ctx.fillStyle = '#fff'; ctx.fillRect(W*0.12, H-84, 76, 6);
+
+  // draw princess (simple circle with icon)
+  ctx.save();
+  ctx.beginPath(); ctx.fillStyle='white'; ctx.shadowColor='rgba(0,0,0,0.12)'; ctx.shadowBlur=8; ctx.arc(princessPos.x, princessPos.y, 22, 0, Math.PI*2); ctx.fill(); ctx.shadowBlur=0;
+  ctx.fillStyle='#7a1b5a'; ctx.font='20px serif'; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(princess?princess.icon:'👑', princessPos.x, princessPos.y);
+  ctx.restore();
+
+  // draw obstacles
+  for(let ob of obstacles){ ctx.fillStyle='#7a1b5a'; ctx.fillRect(ob.x, ob.y, ob.w, ob.h); }
+
+  // UI small text
+  ctx.fillStyle='rgba(122,27,90,0.9)'; ctx.font='14px system-ui'; ctx.fillText(`Princess: ${princess?princess.name:'None'}`, 110, 24);
+
+  if(running) requestAnimationFrame(loop);
 }
+
+function checkMilestones(){
+  // backgrounds change
+  if(coins>=150) bgStage=3;
+  else if(coins>=100) bgStage=2;
+  else if(coins>=50) bgStage=1;
+  else bgStage=0;
+}
+
+// initial draw
+(function init(){
+  drawBackground(); ctx.fillStyle='rgba(122,27,90,0.9)'; ctx.font='18px sans-serif'; ctx.fillText('Choose a princess and press START', W/2, H/2);
+})();
+
+// small helpful tips for GitHub Pages: Save this file as index.html in a repo named princes-flap and enable Pages in settings.
+
 </script>
+</body>
+</html>
 
