@@ -1,248 +1,111 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Princess Arcade — Deluxe</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #fff7fc;
-      margin: 0;
-      padding: 0;
-      color: #333;
-    }
-    header {
-      display: flex;
-      justify-content: space-between;
-      padding: 15px;
-      background: #fff;
-      border-bottom: 2px solid #eee;
-    }
-    header h1 {
-      margin: 0;
-      font-size: 20px;
-      font-weight: bold;
-      color: #b83280;
-    }
-    #status {
-      font-size: 14px;
-    }
-    #status button {
-      background: hotpink;
-      color: white;
-      border: none;
-      padding: 5px 10px;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    .princess-picker {
-      display: flex;
-      gap: 10px;
-      padding: 15px;
-    }
-    .princess {
-      width: 70px;
-      height: 70px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: bold;
-      cursor: pointer;
-      flex-direction: column;
-    }
-    .princess span {
-      font-size: 12px;
-      margin-top: 5px;
-    }
-    .nav {
-      display: flex;
-      gap: 8px;
-      padding: 10px 15px;
-    }
-    .nav button {
-      background: white;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      padding: 6px 12px;
-      cursor: pointer;
-    }
-    .nav button.active {
-      background: hotpink;
-      color: white;
-    }
-    #main {
-      display: flex;
-      padding: 20px;
-    }
-    #game-area {
-      flex: 2;
-      background: #fff0fa;
-      border-radius: 12px;
-      padding: 20px;
-      text-align: center;
-      min-height: 300px;
-    }
-    #shop {
-      flex: 1;
-      margin-left: 20px;
-      background: #fff;
-      padding: 20px;
-      border-radius: 12px;
-      border: 1px solid #eee;
-    }
-    #footer {
-      padding: 15px;
-      text-align: center;
-      font-size: 14px;
-      border-top: 2px solid #eee;
-      background: #fff;
-    }
-    .game-canvas {
-      border: 2px solid #b83280;
-      border-radius: 8px;
-      background: white;
-    }
-    ul {
-      text-align: left;
-      max-width: 400px;
-      margin: auto;
-    }
-    .btn {
-      margin: 5px;
-      padding: 6px 14px;
-      border: none;
-      border-radius: 8px;
-      background: hotpink;
-      color: white;
-      cursor: pointer;
-    }
-  </style>
-</head>
-<body>
-  <header>
-    <h1>Princess Arcade — Deluxe (Offline)</h1>
-    <div id="status">Coins: 0 | Hearts: 0 
-      <button onclick="buyHeart()">Buy Heart (30)</button>
-    </div>
-  </header>
+<!-- Princess Flap Game -->
+<div id="flap" class="game-section" style="display:none;">
+  <canvas id="flapCanvas" width="400" height="500" style="background:linear-gradient(#d9c9ff,#fff0f6); border:2px solid purple; display:block; margin:auto;"></canvas>
+  <p style="text-align:center; color:purple; font-weight:bold;">Press SPACE to fly! Avoid the wands!</p>
+</div>
 
-  <!-- Princess Picker -->
-  <div class="princess-picker">
-    <div class="princess" style="background:pink;" onclick="selectPrincess('Ariel')">AR <span>Ariel</span></div>
-    <div class="princess" style="background:gold;" onclick="selectPrincess('Belle')">BE <span>Belle</span></div>
-    <div class="princess" style="background:skyblue;" onclick="selectPrincess('Cinderella')">CI <span>Cinderella</span></div>
-    <div class="princess" style="background:khaki;" onclick="selectPrincess('Rapunzel')">RA <span>Rapunzel</span></div>
-    <div class="princess" style="background:salmon;" onclick="selectPrincess('Mulan')">MU <span>Mulan</span></div>
-    <div class="princess" style="background:lightgreen;" onclick="selectPrincess('Tiana')">TI <span>Tiana</span></div>
-  </div>
+<script>
+const flapCanvas = document.getElementById("flapCanvas");
+const ctx = flapCanvas.getContext("2d");
 
-  <!-- Navigation -->
-  <div class="nav">
-    <button onclick="showSection('flap')">Princess Flap</button>
-    <button onclick="showSection('runner')">Princess Runner</button>
-    <button onclick="showSection('puzzle')">Puzzle Tiles</button>
-    <button onclick="showSection('facts')">My Facts</button>
-    <button onclick="showSection('climbing')">Rock Climbing</button>
-  </div>
+let princess, gravity, lift, velocity, wands, score, gameOver;
 
-  <!-- Main content -->
-  <div id="main">
-    <div id="game-area">
-      <p>Select a game or section to begin!</p>
-    </div>
+function startFlap() {
+  princess = { x: 80, y: 200, radius: 20 };
+  gravity = 0.6;
+  lift = -10;
+  velocity = 0;
+  wands = [];
+  score = 0;
+  gameOver = false;
+  document.addEventListener("keydown", flapKey);
+  setInterval(addWand, 2000);
+  requestAnimationFrame(drawFlap);
+}
 
-    <!-- Shop -->
-    <div id="shop">
-      <h3>Shop & Progress</h3>
-      <button class="btn" onclick="buyHeart()">Buy Heart (30)</button>
-      <p>Milestone backgrounds: 50 / 100 / 150 coins unlock fancy backgrounds.</p>
-      <h4>How coins are earned</h4>
-      <ul>
-        <li>Flap: pass obstacles → +1 coin</li>
-        <li>Runner: survive + collect → coins</li>
-        <li>Puzzle: complete puzzle → +10 coins</li>
-      </ul>
-    </div>
-  </div>
+function flapKey(e) {
+  if (e.code === "Space" && !gameOver) {
+    velocity += lift;
+  }
+}
 
-  <div id="footer">
-    <span id="princess-name">Selected: Ariel</span>
-    <div>
-      <button class="btn" onclick="startGame()">Start</button>
-      <button class="btn" onclick="resetGame()">Reset</button>
-    </div>
-  </div>
+function addWand() {
+  if (gameOver) return;
+  let gap = 120;
+  let topHeight = Math.floor(Math.random() * 250) + 50;
+  wands.push({
+    x: flapCanvas.width,
+    top: topHeight,
+    bottom: topHeight + gap,
+    width: 40
+  });
+}
 
-  <script>
-    let coins = 0;
-    let hearts = 0;
-    let princess = "Ariel";
+function drawFlap() {
+  ctx.clearRect(0, 0, flapCanvas.width, flapCanvas.height);
 
-    function updateStatus() {
-      document.getElementById("status").innerHTML = 
-        `Coins: ${coins} | Hearts: ${hearts} <button onclick="buyHeart()">Buy Heart (30)</button>`;
-    }
-    function buyHeart() {
-      if (coins >= 30) {
-        coins -= 30;
-        hearts++;
-        updateStatus();
-      } else {
-        alert("Not enough coins!");
-      }
-    }
-    function selectPrincess(name) {
-      princess = name;
-      document.getElementById("princess-name").textContent = "Selected: " + name;
+  // Princess character
+  ctx.fillStyle = "pink";
+  ctx.beginPath();
+  ctx.arc(princess.x, princess.y, princess.radius, 0, Math.PI*2);
+  ctx.fill();
+  ctx.strokeStyle = "purple";
+  ctx.stroke();
+
+  // Physics
+  velocity += gravity;
+  princess.y += velocity;
+  if (princess.y + princess.radius > flapCanvas.height) {
+    princess.y = flapCanvas.height - princess.radius;
+    gameOver = true;
+  }
+  if (princess.y - princess.radius < 0) {
+    princess.y = princess.radius;
+  }
+
+  // Wands (obstacles)
+  ctx.fillStyle = "purple";
+  for (let i = 0; i < wands.length; i++) {
+    let w = wands[i];
+    // Top wand
+    ctx.fillRect(w.x, 0, w.width, w.top);
+    // Bottom wand
+    ctx.fillRect(w.x, w.bottom, w.width, flapCanvas.height - w.bottom);
+
+    w.x -= 2;
+
+    // Collision
+    if (
+      princess.x + princess.radius > w.x &&
+      princess.x - princess.radius < w.x + w.width &&
+      (princess.y - princess.radius < w.top || princess.y + princess.radius > w.bottom)
+    ) {
+      gameOver = true;
     }
 
-    function showSection(section) {
-      let html = "";
-      if (section === "flap") {
-        html = `<canvas id="flapCanvas" class="game-canvas" width="400" height="300"></canvas><p>Flap through magic wands!</p>`;
-      }
-      if (section === "runner") {
-        html = `<canvas id="runnerCanvas" class="game-canvas" width="400" height="300"></canvas><p>Jump obstacles and collect coins!</p>`;
-      }
-      if (section === "puzzle") {
-        html = `<div style="display:grid;grid-template-columns:repeat(3,80px);gap:5px;justify-content:center;">
-          <div style="background:purple;color:white;padding:30px;">7</div>
-          <div style="background:purple;color:white;padding:30px;">3</div>
-          <div style="background:purple;color:white;padding:30px;">8</div>
-          <div style="background:purple;color:white;padding:30px;">4</div>
-          <div style="background:purple;color:white;padding:30px;">6</div>
-          <div style="background:purple;color:white;padding:30px;">5</div>
-          <div style="background:purple;color:white;padding:30px;">2</div>
-          <div style="background:purple;color:white;padding:30px;">1</div>
-          <div style="background:white;padding:30px;"></div>
-        </div><p>Slide tiles to complete the princess puzzle.</p>`;
-      }
-      if (section === "facts") {
-        html = `<h2 style="color:purple;">🌸 My Facts 🌸</h2>
-        <ul>
-          <li>💜 My favorite color is purple</li>
-          <li>🧗 My favorite sport is rock climbing</li>
-          <li>👧 I have one younger sister</li>
-          <li>🐶 I have one dog named Orca</li>
-        </ul>`;
-      }
-      if (section === "climbing") {
-        html = `<h2 style="color:darkorchid;">🧗 Rock Climbing 🧗</h2>
-        <p>I am on a <b>competitive rock climbing team</b>! 
-        Rock climbing challenges me to be strong, focused, and determined. 
-        I love climbing walls and reaching new heights!</p>`;
-      }
-      document.getElementById("game-area").innerHTML = html;
+    // Scoring
+    if (w.x + w.width === princess.x) {
+      score++;
     }
+  }
 
-    function startGame() {
-      alert("Game started! (placeholder)");
-    }
-    function resetGame() {
-      alert("Game reset! (placeholder)");
-    }
-  </script>
-</body>
-</html>
+  // Draw score
+  ctx.fillStyle = "darkmagenta";
+  ctx.font = "20px Arial";
+  ctx.fillText("Score: " + score, 10, 25);
+
+  if (!gameOver) {
+    requestAnimationFrame(drawFlap);
+  } else {
+    ctx.fillStyle = "red";
+    ctx.font = "30px Arial";
+    ctx.fillText("Game Over!", 120, 250);
+  }
+}
+
+// Hook this into your "Start" button for Flap
+function startFlapGame() {
+  startFlap();
+}
+</script>
 
