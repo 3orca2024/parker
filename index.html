@@ -2,38 +2,35 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Princess Arcade ✨</title>
+  <title>Princess Arcade</title>
   <style>
     body {
       margin:0;
-      font-family: "Comic Sans MS", cursive;
-      background: linear-gradient(to bottom,#ffe6ff,#fff0f9);
+      font-family: Arial, sans-serif;
+      background: linear-gradient(to bottom,#ffe6f2,#ffffff);
       text-align:center;
-      color:#5c2a72;
+      color:#333;
     }
     h1 {
       font-size: 36px;
       margin:10px;
-      color:#b03fb0;
-      text-shadow: 2px 2px #ffd6f5;
+      color:#cc33cc;
     }
     #menu button, #game-tabs button, #shop button, #milestones button, #instructions button {
       margin:5px;
       padding:10px 20px;
       border:none;
       border-radius:12px;
-      background:#ffb3ec;
-      color:#5c2a72;
+      background:#ff99cc;
+      color:#fff;
       font-size:16px;
       cursor:pointer;
-      transition:0.3s;
     }
     #menu button:hover, #game-tabs button:hover, #shop button:hover, #milestones button:hover, #instructions button:hover {
-      background:#ff66cc;
-      color:white;
+      background:#cc33cc;
     }
     canvas {
-      border:3px solid #c76dc7;
+      border:3px solid #cc33cc;
       border-radius:15px;
       margin:10px auto;
       display:block;
@@ -47,12 +44,12 @@
   </style>
 </head>
 <body>
-  <h1>🌸 Princess Arcade 🌸</h1>
+  <h1>Princess Arcade</h1>
   <div id="hud">Coins: <span id="coins">0</span> | Hearts: <span id="hearts">3</span></div>
 
   <!-- Princess Picker -->
   <div id="picker">
-    <h2>Choose Your Princess 👑</h2>
+    <h2>Choose Your Princess</h2>
     <button onclick="selectPrincess('Amelia','#f99')">Princess Amelia</button>
     <button onclick="selectPrincess('Bella','#9f9')">Princess Bella</button>
     <button onclick="selectPrincess('Celeste','#99f')">Princess Celeste</button>
@@ -83,23 +80,22 @@
 
   <!-- Shop -->
   <div id="shop" class="hidden">
-    <h2>Shop 💎</h2>
+    <h2>Shop</h2>
     <button onclick="buyHeart()">Buy Heart (20 coins)</button>
   </div>
 
   <!-- Milestones -->
   <div id="milestones" class="hidden">
-    <h2>Milestones 🎀</h2>
+    <h2>Milestones</h2>
     <p>Earn coins to unlock magical backgrounds!</p>
   </div>
 
   <!-- Instructions -->
   <div id="instructions" class="hidden">
-    <h2>Instructions 📖</h2>
-    <p>Princess Flap: Tap to fly and avoid magic wands (+2 coins)</p>
-    <p>Princess Runner: Jump over obstacles, collect coins (+1 coin)</p>
-    <p>Princess Puzzle: Solve the magical 3x3 puzzle (+10 coins)</p>
-    <p>Spend coins in the Shop for hearts, unlock backgrounds with milestones!</p>
+    <h2>Instructions</h2>
+    <p>Princess Flap: Tap to fly and avoid pipes</p>
+    <p>Princess Runner: Jump over obstacles</p>
+    <p>Princess Puzzle: Solve the magical puzzle</p>
   </div>
 
 <script>
@@ -133,26 +129,10 @@ function showTab(tab){
 
 // --- GAME LOGIC ---
 
-// Princess Flap (with wand obstacles)
+// Flap
 let flapState={};
 function flapInit(){
   flapState={running:true,y:150,v:0,gravity:0.6,pipes:[],frames:0,score:0};
-}
-function drawStar(cx,cy,spikes,outer,inner,color){
-  ctx.save();
-  ctx.beginPath();
-  ctx.translate(cx,cy);
-  ctx.moveTo(0,0-outer);
-  for(let i=0;i<spikes;i++){
-    ctx.rotate(Math.PI/spikes);
-    ctx.lineTo(0,0-inner);
-    ctx.rotate(Math.PI/spikes);
-    ctx.lineTo(0,0-outer);
-  }
-  ctx.closePath();
-  ctx.fillStyle=color;
-  ctx.fill();
-  ctx.restore();
 }
 function flapLoop(){
   if(!flapState.running)return;
@@ -165,23 +145,14 @@ function flapLoop(){
   flapState.y+=flapState.v;
   flapState.v+=flapState.gravity;
 
-  // princess
   ctx.fillStyle=selectedPrincess?selectedPrincess.color:"#f9c";
   ctx.beginPath();ctx.arc(80,flapState.y,15,0,Math.PI*2);ctx.fill();
 
   for(let p of flapState.pipes){
     p.x-=2;
-
-    // Top wand
-    ctx.fillStyle="#d291ff";
-    ctx.fillRect(p.x+15,0,10,p.y-60);
-    drawStar(p.x+20,p.y-70,5,15,6,"#fff200");
-
-    // Bottom wand
-    ctx.fillStyle="#d291ff";
-    ctx.fillRect(p.x+15,p.y+60,10,320-(p.y+60));
-    drawStar(p.x+20,p.y+70,5,15,6,"#fff200");
-
+    ctx.fillStyle="#0f0";
+    ctx.fillRect(p.x,0,40,p.y-40);
+    ctx.fillRect(p.x,p.y+40,40,320-(p.y+40));
     if(80>p.x && 80<p.x+40 &&
       (flapState.y<p.y-40 || flapState.y>p.y+40)){
       loseHeart();flapState.running=false;
@@ -193,7 +164,7 @@ function flapLoop(){
 }
 mainCanvas.addEventListener("click",()=>{if(currentGame==="flap")flapState.v=-8;});
 
-// Princess Runner
+// Runner
 let runnerState={};
 function runnerInit(){
   runnerState={running:true,player:{x:60,y:260,vy:0},gravity:0.8,obstacles:[],coinsOnTrack:[],frames:0,score:0};
@@ -218,45 +189,11 @@ function runnerLoop(){
 }
 window.addEventListener("keydown",e=>{if(e.code==="Space"&&currentGame==="runner"&&runnerState.player.y>=260)runnerState.player.vy=-12;});
 
-// Princess Puzzle
+// Puzzle
 let puzzleState={};
-const puzzleIcons=["👑","💖","🌟","🏰","🦄","🪽","👸","✨"];
 function puzzleInit(){
-  let arr=[...puzzleIcons,null];
-  arr.sort(()=>Math.random()-0.5);
-  puzzleState={grid:[[],[],[]],empty:{x:0,y:0},running:true};
-  for(let r=0;r<3;r++){for(let c=0;c<3;c++){let v=arr.pop();puzzleState.grid[r][c]=v;if(v===null)puzzleState.empty={x:c,y:r};}}
-}
-function puzzleDraw(){
-  ctx.clearRect(0,0,480,320);
-  const size=100, offX=90, offY=60;
-  ctx.font="48px serif";ctx.textAlign="center";ctx.textBaseline="middle";
-  for(let r=0;r<3;r++){for(let c=0;c<3;c++){let v=puzzleState.grid[r][c];
-    if(v!==null){ctx.fillStyle="#ffb3ec";ctx.fillRect(offX+c*size,offY+r*size,size-4,size-4);
-    ctx.fillStyle="#5c2a72";ctx.fillText(v,offX+c*size+size/2,offY+r*size+size/2);}}}
-}
-mainCanvas.addEventListener("click",e=>{
-  if(currentGame!=="puzzle"||!puzzleState.running)return;
-  let rect=mainCanvas.getBoundingClientRect();
-  let x=(e.clientX-rect.left)*(mainCanvas.width/rect.width);
-  let y=(e.clientY-rect.top)*(mainCanvas.height/rect.height);
-  const size=100, offX=90, offY=60;
-  let c=Math.floor((x-offX)/size), r=Math.floor((y-offY)/size);
-  if(r>=0&&r<3&&c>=0&&c<3){
-    let er=puzzleState.empty.y, ec=puzzleState.empty.x;
-    if(Math.abs(er-r)+Math.abs(ec-c)===1){
-      puzzleState.grid[er][ec]=puzzleState.grid[r][c];
-      puzzleState.grid[r][c]=null;puzzleState.empty={x:c,y:r};
-      puzzleDraw();checkPuzzleWin();
-    }
-  }
-});
-function checkPuzzleWin(){
-  let correct=[...puzzleIcons];
-  let n=0,solved=true;
-  for(let r=0;r<3;r++){for(let c=0;c<3;c++){if(r===2&&c===2)continue;
-    if(puzzleState.grid[r][c]!==correct[n++])solved=false;}}
-  if(solved){giveCoins(10);puzzleState.running=false;alert("✨ You completed the magical puzzle! +10 coins ✨");}
+  puzzleState={running:true};
+  ctx.fillStyle="#333";ctx.fillText("Princess Puzzle coming soon!",150,160);
 }
 
 // --- CONTROL BUTTONS ---
@@ -264,7 +201,7 @@ function setGame(g){currentGame=g;}
 document.getElementById("startBtn").onclick=()=>{
   if(currentGame==="flap"){flapInit();flapLoop();}
   if(currentGame==="runner"){runnerInit();runnerLoop();}
-  if(currentGame==="puzzle"){puzzleInit();puzzleDraw();}
+  if(currentGame==="puzzle"){puzzleInit();}
 };
 document.getElementById("resetBtn").onclick=()=>{
   ctx.clearRect(0,0,480,320);
@@ -273,3 +210,26 @@ document.getElementById("resetBtn").onclick=()=>{
 </script>
 </body>
 </html>
+<!-- My Facts Section -->
+<div id="facts" style="display:none; text-align:center; padding:20px;">
+  <h2 style="color:purple;">🌸 My Facts 🌸</h2>
+  <ul style="list-style:none; font-size:18px;">
+    <li>💜 My favorite color is <b>purple</b></li>
+    <li>🧗 My favorite sport is <b>rock climbing</b></li>
+    <li>👧 I have one younger sister</li>
+    <li>🐶 I have one dog named <b>Orca</b></li>
+  </ul>
+</div>
+
+<!-- Rock Climbing Section -->
+<div id="climbing" style="display:none; text-align:center; padding:20px;">
+  <h2 style="color:darkorchid;">🧗 Rock Climbing 🧗</h2>
+  <p style="font-size:18px; max-width:600px; margin:auto;">
+    I am on a <b>competitive rock climbing team</b>! 
+    Rock climbing is my favorite sport because it challenges me to be strong, 
+    focused, and determined. I love climbing walls and reaching new heights!
+  </p>
+</div>
+<button onclick="showSection('facts')">My Facts</button>
+<button onclick="showSection('climbing')">Rock Climbing</button>
+
