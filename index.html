@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>BioLab Quiz 🧬</title>
+<title>BioLab Quiz</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -14,7 +14,7 @@ body{
   padding:20px;
   max-width:1100px;
   margin:auto;
-  transition: background 0.6s;
+  transition: background 0.3s;
 }
 
 h1{
@@ -22,168 +22,133 @@ h1{
   text-align:center;
   font-size:3rem;
   color:#1e3a8a;
-  letter-spacing:2px;
 }
 
-h2{
-  text-align:center;
-  color:#2563eb;
-}
+h2{text-align:center;color:#2563eb;}
 
-#modeBox{
-  text-align:center;
-  margin-bottom:20px;
-}
-
+#modeBox{text-align:center;margin-bottom:20px;}
 #modeBox button{
-  margin:8px;
-  padding:12px 20px;
-  font-size:1rem;
+  margin:8px;padding:12px 20px;font-size:1rem;
   background:linear-gradient(135deg,#7dd3fc,#a5b4fc);
-  border:none;
-  border-radius:20px;
-  color:#1e293b;
-  font-weight:bold;
-  box-shadow:0 5px 15px rgba(0,0,0,.15);
-  cursor:pointer;
-  transition:.3s;
-}
-#modeBox button:hover{transform:translateY(-3px) scale(1.03);}
-
-#quizBox,#gameBox,#teacherBox{
-  display:none;
-  background:rgba(255,255,255,.9);
-  border-radius:20px;
-  padding:20px;
-  box-shadow:0 10px 30px rgba(0,0,0,.2);
+  border:none;border-radius:20px;font-weight:bold;cursor:pointer;
 }
 
-.question{
-  font-size:1.2rem;
-  margin-bottom:10px;
-  background:#f8fbff;
-  padding:12px;
-  border-left:6px solid #60a5fa;
-  border-radius:10px;
+#quizBox,#gameBox,#teacherBox,#endBox{
+  display:none;background:rgba(255,255,255,.9);
+  border-radius:20px;padding:20px;
 }
 
+.question{font-size:1.2rem;margin-bottom:10px;}
 button.answer{
-  display:block;
-  width:100%;
-  margin:8px 0;
-  padding:10px;
+  display:block;width:100%;margin:8px 0;padding:10px;
   background:linear-gradient(135deg,#a5b4fc,#93c5fd);
-  border:none;
-  border-radius:16px;
-  font-weight:bold;
-  cursor:pointer;
+  border:none;border-radius:16px;font-weight:bold;cursor:pointer;
 }
 
-.correct{color:#16a34a;font-weight:bold;}
-.incorrect{color:#dc2626;font-weight:bold;}
-
-#score,#lives{
-  font-size:1.3rem;
-  font-weight:bold;
+#overlay{
+  position:fixed;top:0;left:0;width:100%;height:100%;
+  display:none;z-index:999;
+  font-size:3rem;text-align:center;line-height:3.5rem;
+  background-size:120px 120px;
 }
 
-#gameQ{
-  font-size:1.4rem;
-  font-weight:bold;
-  color:#1e3a8a;
-}
+#score,#coins,#lives{font-weight:bold;}
 </style>
 </head>
 
 <body>
 
-<h1>BioLab Quiz 🧬</h1>
+<div id="overlay"></div>
+
+<h1>BioLab Quiz</h1>
 <h2>Choose Your Experiment</h2>
 
 <div id="modeBox">
-  <button onclick="startQuiz(25)">Mode 1: 25 Q</button>
-  <button onclick="startQuiz(50)">Mode 2: 50 Q</button>
-  <button onclick="startQuiz(75)">Mode 3: 75 Q</button>
-  <button onclick="startQuiz(100)">Mode 4: 100 Q</button>
-  <button onclick="startGame()">Game Mode 🎮</button>
-  <button onclick="teacherMode()">Teacher Mode 📚</button>
+  <button onclick="startQuiz(25)">25 Questions</button>
+  <button onclick="startQuiz(50)">50 Questions</button>
+  <button onclick="startQuiz(75)">75 Questions</button>
+  <button onclick="startQuiz(100)">100 Questions</button>
+  <button onclick="startGame()">Game Mode</button>
 </div>
 
 <div id="quizBox">
   <div id="qCount"></div>
   <div class="question" id="question"></div>
   <div id="answers"></div>
+  <div id="score">Score: 0</div>
+  <div id="coins">Coins: 0</div>
 </div>
 
 <div id="gameBox">
-  <div id="score">Score: 0</div>
-  <div id="lives">Lives: ❤️❤️❤️</div>
+  <div id="scoreG">Score: 0</div>
+  <div id="coinsG">Coins: 0</div>
+  <div id="lives">Lives: 3</div>
   <p id="gameQ"></p>
   <div id="gameAnswers"></div>
 </div>
 
-<div id="teacherBox">
-  <h3>Teacher Mode</h3>
-  <p id="tQ"></p>
-  <p><b>Answer:</b> <span id="tA"></span></p>
-  <button onclick="nextTeacher()">Next</button>
+<div id="endBox">
+  <h2>Session Complete</h2>
+  <p id="finalScore"></p>
+  <p id="finalCoins"></p>
+  <button onclick="location.reload()">Restart</button>
 </div>
 
 <script>
-const baseQuestions = [
+const base = [
 ["What is a Calorie?","Energy to raise 1kg water 1°C"],
-["Which nutrient is the body's main energy source?","Carbohydrates"],
-["Which nutrient helps absorb vitamins?","Fats"],
-["Which nutrient is made of amino acids?","Proteins"],
-["Which nutrient regulates body functions?","Vitamins"],
-["Which nutrient is inorganic?","Minerals"],
-["Which nutrient is essential for chemical reactions?","Water"],
-["What is ingestion?","The act of eating"],
-["What is digestion?","Breaking food down"],
-["What is absorption?","Cells take in nutrients"],
-["What is elimination?","Removal of waste"],
-["What is mechanical digestion?","Physical breakdown"],
-["What is chemical digestion?","Enzyme breakdown"],
-["What is peristalsis?","Muscle waves moving food"],
-["What forms chyme?","Stomach"],
-["Where does most absorption occur?","Small intestine"],
-["What are villi?","Fingerlike projections"],
-["What does the large intestine absorb?","Water"],
-["What removes carbon dioxide?","Respiratory system"],
-["What secretes sweat?","Integumentary system"],
-["What filters blood?","Kidneys"],
-["Where does filtration occur?","Nephrons"],
-["What carries urine to the bladder?","Ureter"],
-["What stores urine?","Bladder"],
-["What removes urine?","Urethra"]
+["Main energy source?","Carbohydrates"],
+["Helps absorb vitamins?","Fats"],
+["Made of amino acids?","Proteins"],
+["Regulate body functions?","Vitamins"],
+["Inorganic nutrients?","Minerals"],
+["Essential for chemical reactions?","Water"],
+["Act of eating?","Ingestion"],
+["Breakdown of food?","Digestion"],
+["Cells take in nutrients?","Absorption"],
+["Removal of waste?","Elimination"],
+["Physical breakdown?","Mechanical digestion"],
+["Enzyme breakdown?","Chemical digestion"],
+["Muscle waves?","Peristalsis"],
+["Forms chyme?","Stomach"],
+["Most absorption?","Small intestine"],
+["Fingerlike projections?","Villi"],
+["Absorbs water?","Large intestine"],
+["Filters blood?","Kidneys"],
+["Where filtration occurs?","Nephrons"],
+["Carries urine?","Ureter"],
+["Stores urine?","Bladder"],
+["Removes urine?","Urethra"],
+["Removes CO2?","Respiratory system"],
+["Secretes sweat?","Integumentary system"]
 ];
 
-// generate many variations
 let questions=[];
-for(let i=0;i<10;i++){
-  baseQuestions.forEach(q=>{
-    questions.push({q:q[0],a:q[1]});
-  });
+for(let i=0;i<10;i++) base.forEach(q=>questions.push({q:q[0],a:q[1]}));
+
+let current=0,limit=25,score=0,coins=0,lives=3,session=[];
+
+function shuffle(a){return a.sort(()=>Math.random()-0.5);}
+
+function overlay(symbol){
+  const o=document.getElementById("overlay");
+  o.style.display="block";
+  o.style.background=`repeating-linear-gradient(45deg, transparent, transparent 20px), url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60'><text x='10' y='40' font-size='40'>${symbol}</text></svg>")`;
+  setTimeout(()=>o.style.display="none",400);
 }
 
-let current=0,score=0,lives=3,limit=25;
-
-function shuffle(arr){return arr.sort(()=>Math.random()-0.5);}
-
-function startQuiz(num){
-  document.body.style.background="";
-  limit=num;
-  current=0;
-  shuffle(questions);
+function startQuiz(n){
+  limit=n;current=0;score=0;coins=0;
+  session=shuffle([...questions]).slice(0,limit);
   document.getElementById("modeBox").style.display="none";
   document.getElementById("quizBox").style.display="block";
   showQ();
 }
 
 function showQ(){
-  if(current>=limit){alert("Complete!");location.reload();return;}
-  document.getElementById("qCount").textContent=`Question ${current+1}/${limit}`;
-  const q=questions[current];
+  if(current>=limit){end();return;}
+  document.getElementById("qCount").textContent=`${current+1}/${limit}`;
+  const q=session[current];
   document.getElementById("question").textContent=q.q;
   let opts=[q.a];
   while(opts.length<4){
@@ -204,28 +169,26 @@ function showQ(){
 
 function check(sel,ans){
   if(sel===ans){
-    document.body.style.background="#dcfce7";
+    score+=10;coins++;overlay("👍");
   }else{
-    document.body.style.background="#fee2e2";
+    score-=5;overlay("👎");
   }
-  setTimeout(()=>{
-    document.body.style.background="";
-    current++;
-    showQ();
-  },500);
+  document.getElementById("score").textContent="Score: "+score;
+  document.getElementById("coins").textContent="Coins: "+coins;
+  current++;setTimeout(showQ,400);
 }
 
 function startGame(){
-  shuffle(questions);
-  score=0;lives=3;current=0;
+  current=0;score=0;coins=0;lives=3;
+  session=shuffle([...questions]).slice(0,100);
   document.getElementById("modeBox").style.display="none";
   document.getElementById("gameBox").style.display="block";
   gameQ();
 }
 
 function gameQ(){
-  if(lives<=0){alert("Game Over! Score: "+score);location.reload();return;}
-  const q=questions[current];
+  if(lives<=0||current>=session.length){end();return;}
+  const q=session[current];
   document.getElementById("gameQ").textContent=q.q;
   let opts=[q.a];
   while(opts.length<4){
@@ -240,38 +203,26 @@ function gameQ(){
     b.className="answer";
     b.textContent=o;
     b.onclick=()=>{
-      if(o===q.a){
-        score+=10;
-        document.body.style.background="#dcfce7";
-      }else{
-        lives--;
-        document.body.style.background="#fee2e2";
-      }
-      document.getElementById("score").textContent="Score: "+score;
-      document.getElementById("lives").textContent="Lives: "+"❤️".repeat(lives);
-      setTimeout(()=>{
-        document.body.style.background="";
-        current++;
-        gameQ();
-      },500);
+      if(o===q.a){score+=10;coins++;overlay("👍");}
+      else{score-=5;lives--;overlay("👎");}
+      document.getElementById("scoreG").textContent="Score: "+score;
+      document.getElementById("coinsG").textContent="Coins: "+coins;
+      document.getElementById("lives").textContent="Lives: "+lives;
+      current++;setTimeout(gameQ,400);
     };
     box.appendChild(b);
   });
 }
 
-let tIndex=0;
-function teacherMode(){
-  shuffle(questions);
-  document.getElementById("modeBox").style.display="none";
-  document.getElementById("teacherBox").style.display="block";
-  nextTeacher();
-}
-function nextTeacher(){
-  const q=questions[tIndex++];
-  document.getElementById("tQ").textContent=q.q;
-  document.getElementById("tA").textContent=q.a;
+function end(){
+  document.getElementById("quizBox").style.display="none";
+  document.getElementById("gameBox").style.display="none";
+  document.getElementById("endBox").style.display="block";
+  document.getElementById("finalScore").textContent="Final Score: "+score;
+  document.getElementById("finalCoins").textContent="Coins Earned: "+coins;
 }
 </script>
 </body>
 </html>
+
 
