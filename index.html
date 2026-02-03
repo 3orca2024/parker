@@ -1,24 +1,51 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Nutrition Quiz Arena</title>
+<title>BioLab Quiz 🧬</title>
+
 <style>
-body{font-family:Arial;background:#f4f6f8;padding:20px;max-width:1000px;margin:auto}
-h1,h2,#timer,#modeBox{text-align:center}
-.question{background:#fff;padding:12px;margin:10px 0;border-radius:8px;box-shadow:0 0 5px rgba(0,0,0,.1)}
-.correct{color:green}.incorrect{color:red}
-button{padding:12px;font-size:16px;width:100%;margin:8px 0;cursor:pointer}
-#gameBox{display:none;text-align:center}
-#lives{font-size:18px}
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;700&family=Orbitron:wght@500&display=swap');
+body{
+    font-family:'Nunito',sans-serif;
+    background: radial-gradient(circle at top, #e8f9ff, #cfe7ff);
+    padding:20px;
+    max-width:1000px;
+    margin:auto;
+}
+h1{
+    font-family:'Orbitron',sans-serif;
+    text-align:center;
+    font-size:3rem;
+    color:#1e3a8a;
+}
+h2{text-align:center;color:#2563eb}
+.question{
+    background:rgba(255,255,255,.9);
+    padding:12px;
+    margin:10px 0;
+    border-radius:10px;
+    border-left:6px solid #60a5fa;
+}
+button{
+    background:linear-gradient(135deg,#7dd3fc,#a5b4fc);
+    border:none;border-radius:16px;
+    padding:12px;font-size:16px;
+    font-weight:bold;cursor:pointer;
+    width:100%;margin:8px 0;
+}
+.correct{color:#16a34a;font-weight:bold}
+.incorrect{color:#dc2626;font-weight:bold}
+#timer{text-align:center;font-size:1.2rem;color:#1e40af;font-weight:bold}
+#gameBox{display:none;text-align:center;background:white;border-radius:20px;padding:20px}
+#lives{font-size:1.4rem}
 </style>
 </head>
 
 <body>
 
-<h1>Nutrition Quiz Arena</h1>
-<h2>Select Mode</h2>
+<h1>BioLab Quiz 🧬</h1>
+<h2>Choose Your Experiment</h2>
 
 <div id="modeBox">
 <button onclick="startNormal(25)">Normal – 25</button>
@@ -32,35 +59,74 @@ button{padding:12px;font-size:16px;width:100%;margin:8px 0;cursor:pointer}
 <form id="quiz"></form>
 <button id="submitBtn" onclick="checkAnswers()" style="display:none">Submit</button>
 <button id="retryBtn" onclick="location.reload()" style="display:none">Restart</button>
-<div id="result" class="result"></div>
+<div id="result"></div>
 
 <div id="gameBox">
-<div id="lives">❤️❤️❤️</div>
+<div id="lives"></div>
 <p id="gameQ"></p>
 <div id="gameOpts"></div>
 </div>
 
 <script>
-const bank=[["What is a Calorie?",["Energy in food","Fat","Protein","Water"],0],
-["Major energy source?",["Proteins","Fats","Carbs","Vitamins"],2],
-["Amino acids form?",["Carbs","Fats","Proteins","Minerals"],2],
-["Absorbs vitamins?",["Water","Fats","Minerals","Proteins"],1],
-["Act of eating?",["Digestion","Absorption","Ingestion","Elimination"],2],
-["Uses enzymes?",["Mechanical","Chemical","Peristalsis","Absorption"],1],
-["Most absorption?",["Stomach","Small intestine","Large intestine","Esophagus"],1],
-["Peristalsis?",["Chewing","Enzymes","Muscle waves","Waste"],2],
-["Removes CO2?",["Digestive","Urinary","Respiratory","Skin"],2],
-["Filters blood?",["Bladder","Urethra","Kidney","Ureter"],2]
+const bank = [
+["What is a Calorie?",["Energy in food","Fat unit","Protein unit","Water unit"],0],
+["One Calorie raises the temperature of:",["1 g water 1°C","1 kg water 1°C","10 kg water 1°C","1 kg water 10°C"],1],
+["Which nutrient is the main energy source?",["Proteins","Fats","Carbohydrates","Vitamins"],2],
+["What are carbohydrates made of?",["Amino acids","Sugar molecules","Fat chains","Minerals"],1],
+["Which nutrient is for growth and repair?",["Carbs","Fats","Proteins","Vitamins"],2],
+["Which nutrient helps absorb vitamins?",["Water","Fats","Minerals","Proteins"],1],
+["Which are needed in small amounts?",["Fats & Carbs","Proteins & Fats","Vitamins & Minerals","Water & Carbs"],2],
+["Why is water essential?",["Stores fat","Provides calories","Chemical reactions require it","Builds muscle"],2],
+["Which regulates body functions?",["Proteins","Vitamins","Carbs","Fats"],1],
+["Which is an inorganic nutrient?",["Protein","Vitamin","Mineral","Fat"],2],
+["Which nutrient stores energy?",["Water","Fats","Vitamins","Minerals"],1],
+["Which nutrient forms enzymes?",["Fats","Proteins","Carbs","Minerals"],1],
+["Which nutrient is NOT a calorie source?",["Fats","Proteins","Vitamins","Carbs"],2],
+["Nutritional needs depend on:",["Age","Gender","Activity","All three"],3],
+
+["Which is the act of eating?",["Digestion","Absorption","Ingestion","Elimination"],2],
+["Which removes waste?",["Ingestion","Digestion","Absorption","Elimination"],3],
+["Which breaks food into smaller parts?",["Digestion","Absorption","Elimination","Peristalsis"],0],
+["Which stage takes nutrients into blood?",["Digestion","Absorption","Elimination","Ingestion"],1],
+
+["Which is mechanical digestion?",["Enzymes","Chewing","Stomach acid","Bile"],1],
+["Which uses enzymes?",["Mechanical","Chemical","Peristalsis","Absorption"],1],
+["What are enzymes?",["Sugars","Proteins that speed reactions","Fats","Minerals"],1],
+
+["Where does digestion begin?",["Stomach","Mouth","Esophagus","Small intestine"],1],
+["What connects mouth to stomach?",["Trachea","Small intestine","Esophagus","Colon"],2],
+["What moves food through system?",["Absorption","Peristalsis","Villi","Filtration"],1],
+["What forms chyme?",["Mouth","Stomach","Small intestine","Large intestine"],1],
+["What is chyme?",["Solid food","Digestive enzyme","Thin liquid","Waste"],2],
+["Where does most chemical digestion occur?",["Stomach","Small intestine","Large intestine","Esophagus"],1],
+["What absorbs nutrients?",["Stomach","Small intestine","Large intestine","Esophagus"],1],
+["What are villi?",["Muscles","Glands","Fingerlike projections","Juices"],2],
+["What absorbs water?",["Small intestine","Stomach","Large intestine","Mouth"],2],
+
+["Main function of excretory system?",["Digestion","Remove wastes & regulate fluids","Oxygen transport","Movement"],1],
+["Which removes undigested solids?",["Digestive","Urinary","Respiratory","Integumentary"],0],
+["Which removes urine?",["Digestive","Urinary","Respiratory","Skin"],1],
+["Which removes carbon dioxide?",["Digestive","Urinary","Respiratory","Skin"],2],
+["Which removes sweat?",["Digestive","Respiratory","Integumentary","Urinary"],2],
+
+["What filters blood?",["Bladder","Urethra","Kidneys","Ureter"],2],
+["Where does filtration occur?",["Nephrons","Ureters","Bladder","Urethra"],0],
+["What carries urine to bladder?",["Nephron","Urethra","Ureter","Kidney"],2],
+["What stores urine?",["Kidney","Bladder","Ureter","Urethra"],1],
+["What releases urine?",["Urethra","Ureter","Nephron","Kidney"],0],
+
+["Which system regulates fluid levels?",["Digestive","Excretory","Respiratory","Circulatory"],1],
+["Which system removes water vapor?",["Digestive","Urinary","Respiratory","Skin"],2]
 ];
 
-let quizQ=[],timerInt,timeLeft,isTeacher=false;
+let quizQ=[],timerInt,timeLeft;
+
 function shuffle(a){for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 
-function startNormal(n){setup(n,false)}
-function startTeacher(){setup(bank.length,true)}
+function startNormal(n){setup(n)}
+function startTeacher(){setup(bank.length)}
 
-function setup(n,teacher){
-isTeacher=teacher;
+function setup(n){
 document.getElementById("modeBox").style.display="none";
 quizQ=shuffle([...bank]).slice(0,n);
 build();
@@ -82,7 +148,7 @@ document.getElementById("submitBtn").style.display="block";
 function startTimer(sec){
 timeLeft=sec;
 timerInt=setInterval(()=>{
-document.getElementById("timer").textContent="Time: "+timeLeft;
+document.getElementById("timer").textContent="Time Left: "+timeLeft;
 timeLeft--;
 if(timeLeft<0){clearInterval(timerInt);checkAnswers();}
 },1000);
@@ -97,7 +163,7 @@ if(sel&&+sel.value===x[2]){s++;fb.textContent="Correct";fb.className="correct";}
 else{fb.textContent="Correct: "+x[1][x[2]];fb.className="incorrect";}
 });
 let p=Math.round((s/quizQ.length)*100);
-document.getElementById("result").textContent=`Score ${s}/${quizQ.length} (${p}%)`;
+document.getElementById("result").textContent=`Score: ${s}/${quizQ.length} (${p}%)`;
 document.getElementById("retryBtn").style.display="block";
 }
 
@@ -110,7 +176,7 @@ quizQ=shuffle([...bank]);gIndex=0;lives=3;
 showGame();
 }
 function showGame(){
-if(lives<=0){document.getElementById("gameQ").textContent="Game Over";return;}
+if(lives<=0){document.getElementById("gameQ").textContent="Experiment Failed";return;}
 let q=quizQ[gIndex];
 document.getElementById("lives").textContent="❤️".repeat(lives);
 document.getElementById("gameQ").textContent=q[0];
@@ -129,5 +195,6 @@ gIndex=(gIndex+1)%quizQ.length;
 showGame();
 }
 </script>
+
 </body>
 </html>
